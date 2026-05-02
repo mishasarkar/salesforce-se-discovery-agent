@@ -87,4 +87,8 @@
         <field>Discovery_Session__c.Top_Pain_Point_3__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <classAccesses>
+        <apexClass>GenerateSolutionBriefAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
 </PermissionSet>

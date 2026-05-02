@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Generates a concise follow-up recap email from the SE to the prospect after a discovery session. Under 200 words, warm and professional tone, uses the prospect's own language.</description>
+    <activeVersionIdentifier>Q9MwD9hQgCv2IA600Os8vn195/l4ZdqhC2WFBb0rgcY=_1</activeVersionIdentifier>
+    <developerName>Generate_Followup_Email</developerName>
     <masterLabel>Generate Followup Email</masterLabel>
+    <overridable>false</overridable>
     <templateVersions>
         <content>You are a Salesforce Solution Engineer writing a follow-up email to a prospect after a discovery call. Write a concise recap email (under 200 words).
 
@@ -16,22 +18,26 @@ Recommended Solutions: {!$Input:DiscoverySession.Recommended_Clouds__c}
 Decision Timeline: {!$Input:DiscoverySession.Decision_Timeline__c}
 
 Write the email following these rules:
+- Start with a suggested subject line in the format &quot;Subject: ...&quot;
 - Thank them genuinely for their time (1 sentence, not generic)
 - Summarize the three pain points in THEIR exact words, not Salesforce jargon
-- Name the recommended Salesforce solutions and briefly explain why each is relevant to their specific situation
-- Propose a concrete next meeting with a suggested agenda (e.g., "a 90-minute tailored demo focused on X")
+- Name the recommended solutions and briefly explain why each is relevant to their specific situation
+- Propose a concrete next meeting with a suggested agenda (e.g., &quot;a 90-minute tailored demo focused on X&quot;)
 - Tone: warm, professional, not salesy — write like a trusted advisor, not a sales rep
-- Subject line: include a suggested subject line at the top in the format "Subject: ..."
 - Do not exceed 200 words in the email body (subject line excluded)</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
         <inputs>
             <apiName>DiscoverySession</apiName>
-            <definition>Discovery_Session__c</definition>
-            <masterLabel>Discovery Session</masterLabel>
-            <referenceName>DiscoverySession</referenceName>
-            <required>false</required>
+            <definition>SOBJECT://Discovery_Session__c</definition>
+            <masterLabel>DiscoverySession</masterLabel>
+            <referenceName>Input:DiscoverySession</referenceName>
+            <required>true</required>
         </inputs>
-        <primaryModel>sfdc_ai__DefaultGPT4Omni</primaryModel>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
         <status>Published</status>
-        <templateType>Flex</templateType>
+        <versionIdentifier>Q9MwD9hQgCv2IA600Os8vn195/l4ZdqhC2WFBb0rgcY=_1</versionIdentifier>
     </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
 </GenAiPromptTemplate>

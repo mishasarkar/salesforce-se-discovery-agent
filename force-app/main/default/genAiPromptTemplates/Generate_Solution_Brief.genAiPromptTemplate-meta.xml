@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Generates a structured Solution Brief from a completed Discovery Session record. Maps the prospect's pain points to specific Salesforce clouds with business-value justifications.</description>
+    <activeVersionIdentifier>Q9MwD9hQgCv2IA600Os8vn195/l4ZdqhC2WFBb0rgcY=_1</activeVersionIdentifier>
+    <developerName>Generate_Solution_Brief</developerName>
     <masterLabel>Generate Solution Brief</masterLabel>
+    <overridable>false</overridable>
     <templateVersions>
         <content>You are a senior Salesforce Solution Engineer. Given the discovery session below, produce a structured Solution Brief. Use plain language. No fluff. No generic marketing copy. Tie every recommendation to a specific pain point the prospect mentioned.
 
@@ -24,30 +26,33 @@ Produce the Solution Brief using EXACTLY these five sections:
 2-3 sentences summarizing who they are and what they do.
 
 2. **Top Business Challenges**
-Bulleted list in the prospect's own language, not Salesforce jargon. Quote their exact words where possible.
+Bulleted list in the prospect&apos;s own language, not Salesforce jargon. Quote their exact words where possible.
 
 3. **Recommended Salesforce Solutions**
 For each recommended cloud, provide:
   (a) Cloud name
   (b) One sentence on what it does
   (c) Two sentences on the specific business value for THIS prospect tied to THEIR pain points
-
-Only recommend clouds that directly address a stated pain point. Do not recommend clouds for completeness.
+Only recommend clouds that directly address a stated pain point.
 
 4. **Why Salesforce vs. Alternatives**
-2-3 sentences of differentiation grounded in the prospect's stated needs and current tool gaps.
+2-3 sentences of differentiation grounded in the prospect&apos;s stated needs and current tool gaps.
 
 5. **Suggested Next Step**
 One concrete action: a workshop, a tailored demo, a POC scope, or a joint architecture session. Be specific about what would be covered.</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
         <inputs>
             <apiName>DiscoverySession</apiName>
-            <definition>Discovery_Session__c</definition>
-            <masterLabel>Discovery Session</masterLabel>
-            <referenceName>DiscoverySession</referenceName>
-            <required>false</required>
+            <definition>SOBJECT://Discovery_Session__c</definition>
+            <masterLabel>DiscoverySession</masterLabel>
+            <referenceName>Input:DiscoverySession</referenceName>
+            <required>true</required>
         </inputs>
-        <primaryModel>sfdc_ai__DefaultGPT4Omni</primaryModel>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude45Haiku</primaryModel>
         <status>Published</status>
-        <templateType>Flex</templateType>
+        <versionIdentifier>Q9MwD9hQgCv2IA600Os8vn195/l4ZdqhC2WFBb0rgcY=_1</versionIdentifier>
     </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
 </GenAiPromptTemplate>
