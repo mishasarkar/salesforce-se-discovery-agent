@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Decision_Timeline__c</fullName>
+    <label>Decision Timeline</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>false</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Immediate (0-3mo)</fullName>
+                <default>false</default>
+                <label>Immediate (0-3mo)</label>
+            </value>
+            <value>
+                <fullName>Near-term (3-6mo)</fullName>
+                <default>false</default>
+                <label>Near-term (3-6mo)</label>
+            </value>
+            <value>
+                <fullName>Long-term (6-12mo)</fullName>
+                <default>false</default>
+                <label>Long-term (6-12mo)</label>
+            </value>
+            <value>
+                <fullName>Exploratory</fullName>
+                <default>false</default>
+                <label>Exploratory</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
