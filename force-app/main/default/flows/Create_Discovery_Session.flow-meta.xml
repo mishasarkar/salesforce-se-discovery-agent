@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <description>Creates a new Discovery Session record with prospect name, company, and industry. Called by the SE Discovery Assistant agent at the start of every discovery conversation. Returns the new record Id so subsequent actions can update it.</description>
+    <interviewLabel>Create Discovery Session {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Create Discovery Session</label>
+    <processType>AutoLaunchedFlow</processType>
+    <recordCreates>
+        <name>Create_Session_Record</name>
+        <label>Create Session Record</label>
+        <locationX>176</locationX>
+        <locationY>134</locationY>
+        <inputAssignments>
+            <field>Company_Name__c</field>
+            <value>
+                <elementReference>company_name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Discovery_Status__c</field>
+            <value>
+                <stringValue>In Progress</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Industry__c</field>
+            <value>
+                <elementReference>industry</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Prospect_Name__c</field>
+            <value>
+                <elementReference>prospect_name</elementReference>
+            </value>
+        </inputAssignments>
+        <assignRecordIdToReference>record_id</assignRecordIdToReference>
+        <object>Discovery_Session__c</object>
+    </recordCreates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Create_Session_Record</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>prospect_name</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>company_name</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>industry</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>record_id</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+</Flow>
