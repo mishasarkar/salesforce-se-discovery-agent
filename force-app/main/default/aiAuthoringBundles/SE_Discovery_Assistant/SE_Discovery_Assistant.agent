@@ -6,25 +6,13 @@ system:
 
 config:
     developer_name: "SE_Discovery_Assistant"
-    default_agent_user: "misha3.sarkar.d6352bd98ad2@agentforce.com"
+    default_agent_user: "se_discovery_assistant@00dg5000009iv09190915229.ext"
     agent_label: "SE Discovery Assistant"
     description: "Salesforce Solution Engineer agent that conducts structured discovery, generates a tailored Solution Brief, and drafts a follow-up recap email for B2B prospects."
 
 variables:
     discovery_session_id: mutable string
         description: "Salesforce record Id of the active Discovery Session. Created by the discovery_conversation subagent and used by all subsequent subagents."
-    EndUserId: linked string
-        source: @MessagingSession.MessagingEndUserId
-        description: "This variable may also be referred to as MessagingEndUser Id"
-    RoutableId: linked string
-        source: @MessagingSession.Id
-        description: "This variable may also be referred to as MessagingSession Id"
-    ContactId: linked string
-        source: @MessagingEndUser.ContactId
-        description: "This variable may also be referred to as MessagingEndUser ContactId"
-    EndUserLanguage: linked string
-        source: @MessagingSession.EndUserLanguage
-        description: "This variable may also be referred to as MessagingSession EndUserLanguage"
     VerifiedCustomerId: mutable string
         description: "This variable may also be referred to as VerifiedCustomerId"
 
@@ -160,11 +148,16 @@ subagent discovery_conversation:
 
 
 
+
+
+
+
+
     actions:
         Create_Discovery_Session:
             label: "Create Discovery Session"
             description: |
-                                        
+                                                                                
                 Creates a new Discovery Session record at the start of the conversation. Call once after collecting the prospect's name, company, and industry. Returns the record Id.
             target: "flow://Create_Discovery_Session"
             inputs:
@@ -190,7 +183,7 @@ subagent discovery_conversation:
         Update_Discovery_Session:
             label: "Update Discovery Session"
             description: |
-                
+                                                        
                 Updates the active Discovery Session record with new field values. Call after every 2-3 prospect answers to persist the data.
             target: "flow://Update_Discovery_Session"
             inputs:
@@ -284,11 +277,16 @@ subagent solution_recommendation:
 
 
 
+
+
+
+
+
     actions:
         Generate_Solution_Brief:
             label: "Generate Solution Brief"
             description: |
-                                        
+                                                                                
                 Generates an AI-powered Solution Brief from the Discovery Session record and saves it to the record. Call with the Discovery Session Id. Returns the brief text.
             target: "apex://GenerateSolutionBriefAction"
             inputs:
@@ -306,7 +304,7 @@ subagent solution_recommendation:
         Update_Discovery_Session:
             label: "Update Discovery Session"
             description: |
-                
+                                                        
                 Updates the Discovery Session record if the prospect corrects or adds information before regenerating the brief.
             target: "flow://Update_Discovery_Session"
             inputs:
@@ -402,11 +400,16 @@ subagent followup_generation:
 
 
 
+
+
+
+
+
     actions:
         Generate_Followup_Email:
             label: "Generate Followup Email"
             description: |
-                                        
+                                                                                
                 Generates a follow-up recap email from the Discovery Session record. Call with the Discovery Session Id. Returns the email draft.
             target: "generatePromptResponse://Generate_Followup_Email"
             inputs:
@@ -430,7 +433,7 @@ subagent followup_generation:
         Update_Discovery_Session:
             label: "Update Discovery Session"
             description: |
-                
+                                                        
                 Saves the final approved email to the record and updates the Discovery Status to Sent to Prospect.
             target: "flow://Update_Discovery_Session"
             inputs:

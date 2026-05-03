@@ -91,4 +91,8 @@
         <apexClass>GenerateSolutionBriefAction</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>UpdateDiscoverySessionAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
 </PermissionSet>
