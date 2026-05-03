@@ -1,109 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>66.0</apiVersion>
-    <description>Updates an existing Discovery Session record. Gets the current record first, then merges only non-blank input values so existing fields are never overwritten with blank.</description>
+    <description>Updates an existing Discovery Session record. Note: the agent uses UpdateDiscoverySessionAction Apex (null-safe merge) instead of this flow.</description>
     <interviewLabel>Update Discovery Session {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Update Discovery Session</label>
     <processType>AutoLaunchedFlow</processType>
-    <formulas>
-        <name>merge_budget_range</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!budget_range}), TEXT({!GetSession.Budget_Range__c}), {!budget_range})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_company_size</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!company_size}), TEXT({!GetSession.Company_Size__c}), {!company_size})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_current_crm</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!current_crm}), {!GetSession.Current_CRM__c}, {!current_crm})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_decision_timeline</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!decision_timeline}), TEXT({!GetSession.Decision_Timeline__c}), {!decision_timeline})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_discovery_status</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!discovery_status}), TEXT({!GetSession.Discovery_Status__c}), {!discovery_status})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_followup_email</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!followup_email}), {!GetSession.Followup_Email__c}, {!followup_email})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_key_stakeholders</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!key_stakeholders}), {!GetSession.Key_Stakeholders__c}, {!key_stakeholders})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_recommended_clouds</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!recommended_clouds}), TEXT({!GetSession.Recommended_Clouds__c}), {!recommended_clouds})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_solution_brief</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!solution_brief}), {!GetSession.Solution_Brief__c}, {!solution_brief})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_top_pain_point_1</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!top_pain_point_1}), {!GetSession.Top_Pain_Point_1__c}, {!top_pain_point_1})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_top_pain_point_2</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!top_pain_point_2}), {!GetSession.Top_Pain_Point_2__c}, {!top_pain_point_2})</expression>
-    </formulas>
-    <formulas>
-        <name>merge_top_pain_point_3</name>
-        <dataType>String</dataType>
-        <expression>IF(ISBLANK({!top_pain_point_3}), {!GetSession.Top_Pain_Point_3__c}, {!top_pain_point_3})</expression>
-    </formulas>
-    <recordLookups>
-        <name>GetSession</name>
-        <label>Get Session</label>
-        <locationX>176</locationX>
-        <locationY>134</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Update_Session_Record</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>recordId</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Discovery_Session__c</object>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <assignments>
-        <name>Set_Status_Success</name>
-        <label>Set Status Success</label>
-        <locationX>176</locationX>
-        <locationY>374</locationY>
-        <assignmentItems>
-            <assignToReference>update_status</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Success</stringValue>
-            </value>
-        </assignmentItems>
-    </assignments>
     <recordUpdates>
         <name>Update_Session_Record</name>
         <label>Update Session Record</label>
         <locationX>176</locationX>
-        <locationY>254</locationY>
+        <locationY>134</locationY>
         <connector>
             <targetReference>Set_Status_Success</targetReference>
         </connector>
@@ -118,82 +24,95 @@
         <inputAssignments>
             <field>Budget_Range__c</field>
             <value>
-                <elementReference>merge_budget_range</elementReference>
+                <elementReference>budget_range</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Company_Size__c</field>
             <value>
-                <elementReference>merge_company_size</elementReference>
+                <elementReference>company_size</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Current_CRM__c</field>
             <value>
-                <elementReference>merge_current_crm</elementReference>
+                <elementReference>current_crm</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Decision_Timeline__c</field>
             <value>
-                <elementReference>merge_decision_timeline</elementReference>
+                <elementReference>decision_timeline</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Discovery_Status__c</field>
             <value>
-                <elementReference>merge_discovery_status</elementReference>
+                <elementReference>discovery_status</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Followup_Email__c</field>
             <value>
-                <elementReference>merge_followup_email</elementReference>
+                <elementReference>followup_email</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Key_Stakeholders__c</field>
             <value>
-                <elementReference>merge_key_stakeholders</elementReference>
+                <elementReference>key_stakeholders</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Recommended_Clouds__c</field>
             <value>
-                <elementReference>merge_recommended_clouds</elementReference>
+                <elementReference>recommended_clouds</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Solution_Brief__c</field>
             <value>
-                <elementReference>merge_solution_brief</elementReference>
+                <elementReference>solution_brief</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Top_Pain_Point_1__c</field>
             <value>
-                <elementReference>merge_top_pain_point_1</elementReference>
+                <elementReference>top_pain_point_1</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Top_Pain_Point_2__c</field>
             <value>
-                <elementReference>merge_top_pain_point_2</elementReference>
+                <elementReference>top_pain_point_2</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>Top_Pain_Point_3__c</field>
             <value>
-                <elementReference>merge_top_pain_point_3</elementReference>
+                <elementReference>top_pain_point_3</elementReference>
             </value>
         </inputAssignments>
         <object>Discovery_Session__c</object>
     </recordUpdates>
+    <assignments>
+        <name>Set_Status_Success</name>
+        <label>Set Status Success</label>
+        <locationX>176</locationX>
+        <locationY>254</locationY>
+        <assignmentItems>
+            <assignToReference>update_status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Success</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
     <start>
         <locationX>50</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>GetSession</targetReference>
+            <targetReference>Update_Session_Record</targetReference>
         </connector>
     </start>
     <status>Active</status>

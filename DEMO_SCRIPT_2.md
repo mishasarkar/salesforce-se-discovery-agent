@@ -22,13 +22,19 @@ Before diving into each piece, here's the full architecture:
 └─────────┼──────────────────┼─────────────────────┼──────────┘
           │                  │                     │
           ▼                  ▼                     ▼
-   ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐
-   │    FLOWS    │   │  APEX CLASS  │   │ PROMPT TEMPLATE  │
-   │  (Create +  │   │(Solution     │   │ (Followup Email) │
-   │   Update)   │   │  Brief)      │   └──────────────────┘
-   └──────┬──────┘   └──────┬───────┘
-          │                  │
-          ▼                  ▼
+   ┌─────────────┐   ┌──────────────────┐   ┌──────────────────┐
+   │    FLOWS    │   │   APEX CLASS     │   │   APEX CLASS     │
+   │  (Create)   │   │ GenerateSolution │   │ GenerateFollowup │
+   │             │   │  BriefAction     │   │  EmailAction     │
+   └──────┬──────┘   └──────┬───────────┘   └──────┬───────────┘
+          │                  │                      │
+          │           ┌──────▼──────────────────────▼──────┐
+          │           │     aiplatform.ModelsAPI            │
+          │           │  (Salesforce-hosted LLM — no       │
+          │           │   prompt template required)         │
+          │           └─────────────────────────────────────┘
+          │
+          ▼
    ┌─────────────────────────────────┐
    │      CUSTOM OBJECT              │
    │     Discovery_Session__c        │
@@ -37,7 +43,7 @@ Before diving into each piece, here's the full architecture:
    └─────────────────────────────────┘
 ```
 
-**Translation:** The agent talks to the prospect → Flows save the answers → Apex calls AI for the brief → Prompt Template writes the email → everything lives in one Salesforce record.
+**Translation:** The agent talks to the prospect → Flows/Apex save the answers → Two Apex classes call the Salesforce-hosted LLM directly via `aiplatform.ModelsAPI` → everything lives in one Salesforce record.
 
 ---
 
@@ -111,78 +117,29 @@ Agent has: Name + Company + Industry
 
 ### Flow 2: `Update_Discovery_Session`
 
-**What it does:** Updates the existing Discovery Session record with new answers after every 2-3 questions.
+**What it does:** Updates the existing Discovery Session record with new answers.
 
-**The problem I had to solve:** Salesforce flows, when you pass a blank/empty value for a field, will wipe out whatever was already saved there. So if the agent calls Update with `top_pain_point_1` but not `top_pain_point_2` yet, the flow would blank out `top_pain_point_2` even if it was already saved.
-
-**How I fixed it:** I added a **Get Records** step before the update, plus an Apex class (`UpdateDiscoverySessionAction`) that does a smarter merge:
-
-```
-Agent calls Update with new answers
-         │
-         ▼
-Apex fetches the EXISTING record from Salesforce
-         │
-         ▼
-For each field:
-  IF new value is not blank → use the new value
-  IF new value IS blank → keep the existing value
-         │
-         ▼
-Update record with merged values
-         │
-         ▼
-No data ever gets accidentally wiped out
-```
-
-**Why this matters for the demo:** Pain points accumulate correctly. If the agent saves Pain Point 1 first, then Pain Point 2 in the next call, both stay in the record. Without this fix, the second call would erase Pain Point 1.
+**Important note:** This flow does a direct field update. The null-safe merge logic (preserving existing field values when new ones are blank) lives in the `UpdateDiscoverySessionAction` Apex class, which the agent calls directly. The flow exists as a fallback but the agent uses the Apex class for all updates.
 
 ---
 
 ## Component 3 — The Apex Classes
 
-I wrote **two custom Apex classes** — these are Java-like programs that run on Salesforce's servers.
+I wrote **three custom Apex classes** — these are Java-like programs that run on Salesforce's servers.
 
-### Class 1: `GenerateSolutionBriefAction`
+### Class 1: `CreateDiscoverySessionAction`
 
-**What it does:** Calls the Salesforce Einstein AI API with the Discovery Session data and saves the returned brief back to the record.
+**What it does:** Creates a new Discovery Session record and returns the Salesforce record ID.
 
-**Why I needed custom code instead of a Flow:**
-Salesforce's built-in AI integration (`ConnectApi.EinsteinLLM`) can only be called from Apex. There's no drag-and-drop Flow element for it. I had to write the code myself.
-
-**What happens when the agent calls it:**
-
-```
-Agent passes: Discovery Session Record ID
-         │
-         ▼
-Apex queries the full record (all 15 fields)
-         │
-         ▼
-Apex calls: ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate()
-  └── Passes: the record data + the prompt template name
-         │
-         ▼
-Einstein AI returns: the full Solution Brief text
-         │
-         ▼
-Apex saves:
-  - Solution_Brief__c = the brief text
-  - Discovery_Status__c = "Brief Generated"
-         │
-         ▼
-Agent displays the brief in the chat
-```
-
-**The `@InvocableMethod` annotation:** This is the magic decorator that makes a regular Apex class callable by Agentforce. Without it, the agent can't see or use the class. Think of it like putting a "Available for Agent Use" label on the code.
+**Why Apex instead of just the Flow:** The Apex class uses `session.Id` directly after insert, which is 100% reliable. Early in the build I tried capturing the ID in the flow using `assignRecordIdToReference`, but it was unreliable — the agent would sometimes not receive the ID back. Apex solved this.
 
 ---
 
 ### Class 2: `UpdateDiscoverySessionAction`
 
-**What it does:** The smarter version of the update flow — handles the null-safe merge I described above.
+**What it does:** The null-safe merge — updates only the fields that have new values, leaving everything else untouched.
 
-**Why Apex instead of Flow:** Salesforce Flow's formula engine doesn't support IF() logic on picklist or multi-select picklist fields. The six picklist fields in our object (Company Size, Budget Range, Decision Timeline, Industry, Discovery Status, Recommended Clouds) would have caused formula errors. Apex doesn't have this limitation — it just works.
+**Why Apex instead of Flow:** Salesforce Flow's formula engine doesn't support `IF()` logic on picklist or multi-select picklist fields. Six of our 15 fields are picklists — using formulas would have caused validation errors on every deploy. Apex doesn't have this limitation.
 
 **The core logic (plain English version):**
 
@@ -199,57 +156,78 @@ Simple, reliable, and works for every field type.
 
 ---
 
-## Component 4 — The Prompt Templates
+### Class 3: `GenerateSolutionBriefAction`
 
-I built **two Prompt Templates** in Salesforce Prompt Builder — these are the "instructions" I give to the AI model for each output.
+**What it does:** Queries the Discovery Session record, builds a structured prompt from the field values, calls the Salesforce-hosted LLM directly, and saves the returned brief back to the record.
 
-### Template 1: `Generate_Solution_Brief`
+**The key architectural decision — `aiplatform.ModelsAPI`:**
 
-**What it does:** Takes the Discovery Session data and produces a structured 5-section Solution Brief.
+I'm calling the LLM using Salesforce's `aiplatform.ModelsAPI` — a native Apex API that lets you call Salesforce-hosted models directly without needing a Prompt Template:
 
-**The AI model I chose:** `Claude Haiku` (fast, good at structured output, lower cost)
+```apex
+aiplatform.ModelsAPI.createGenerations_Request request =
+    new aiplatform.ModelsAPI.createGenerations_Request();
+request.modelName = 'sfdc_ai__DefaultBedrockAnthropicClaude45Haiku';
 
-**The five sections I defined:**
+aiplatform.ModelsAPI_GenerationRequest body =
+    new aiplatform.ModelsAPI_GenerationRequest();
+body.prompt = promptText;
+request.body = body;
+
+aiplatform.ModelsAPI modelsAPI = new aiplatform.ModelsAPI();
+aiplatform.ModelsAPI.createGenerations_Response response =
+    modelsAPI.createGenerations(request);
+return response.Code200.generation.generatedText;
+```
+
+**Why not Prompt Templates?**
+Salesforce's other LLM API (`ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`) requires a Prompt Template with a `SOBJECT://` input. When you pass a record ID to that input from Apex, it throws `Invalid input value` — the API can't resolve a plain ID string as a SObject reference. `aiplatform.ModelsAPI` takes a plain text prompt directly, so all the prompt engineering lives in Apex where it belongs.
+
+**What happens when the agent calls it:**
 
 ```
-1. Customer Snapshot      → 2-3 sentences: who they are, what they do
-2. Top Business Challenges → Their pain points in THEIR words (not Salesforce jargon)
-3. Recommended Solutions  → Which Salesforce clouds fix which pain points
-4. Why Salesforce         → 2-3 sentences of differentiation
-5. Suggested Next Step    → One concrete action (demo, workshop, POC)
+Agent passes: Discovery Session Record ID
+         │
+         ▼
+Apex queries all 11 discovery fields
+         │
+         ▼
+Apex builds the full prompt (substituting real field values)
+         │
+         ▼
+aiplatform.ModelsAPI calls Claude Haiku (Salesforce-hosted)
+         │
+         ▼
+LLM returns the structured 5-section Solution Brief
+         │
+         ▼
+Apex saves:
+  - Solution_Brief__c = the brief text
+  - Discovery_Status__c = "Brief Generated"
 ```
+
+---
+
+### Class 4: `GenerateFollowupEmailAction`
+
+**What it does:** Same pattern as the brief — queries the record, builds a focused email prompt, calls the LLM, saves the email to `Followup_Email__c`.
+
+**Model used:** `sfdc_ai__DefaultGPT5Mini` (GPT-4o Mini — optimized for concise, professional writing)
 
 **Key prompt engineering decisions:**
 
 | Instruction I gave the AI | Why |
 |--------------------------|-----|
-| *"Use plain language. No fluff. No generic marketing copy."* | Interviewers and customers can smell a generic pitch instantly |
-| *"Tie every recommendation to a specific pain point the prospect mentioned."* | Forces the AI to be relevant, not just rattle off product features |
-| *"Quote their exact words where possible."* | Makes the prospect feel heard — a core SE skill |
-| *"Only recommend clouds that directly address a stated pain point."* | Prevents over-pitching. Don't recommend all 6 clouds when they only have 2 problems. |
+| *"Start with a suggested Subject: line"* | Makes it truly ready-to-send |
+| *"Thank them genuinely — 1 sentence, not generic"* | The AI knows the specific topics discussed — "Thanks for your time" is lazy |
+| *"Summarize pain points in THEIR exact words, not Salesforce jargon"* | Mirror their vocabulary |
+| *"Propose a concrete next meeting with a suggested agenda"* | Vague next steps kill deals |
+| *"Tone: warm, professional, not salesy"* | SEs are trusted advisors, not sales reps |
+| *"Do not exceed 200 words in the body"* | Long emails don't get read |
 
 ---
 
-### Template 2: `Generate_Followup_Email`
-
-**What it does:** Writes a professional follow-up recap email, under 200 words.
-
-**The AI model I chose:** `GPT-4o Mini` (optimized for concise, professional writing)
-
-**Key prompt engineering decisions:**
-
-| Instruction I gave the AI | Why |
-|--------------------------|-----|
-| *"Start with a suggested Subject: line"* | Makes it truly ready-to-send, nothing left for the SE to figure out |
-| *"Thank them genuinely — 1 sentence, not generic"* | "Thanks for your time" is lazy. The AI knows the specific topics discussed. |
-| *"Summarize pain points in THEIR exact words, not Salesforce jargon"* | Same reason as the brief — mirror their vocabulary |
-| *"Propose a concrete next meeting with a suggested agenda"* | Vague next steps kill deals. The email suggests a specific demo focus. |
-| *"Tone: warm, professional, not salesy — write like a trusted advisor"* | SEs are not sales reps. The email should feel like it's from someone who actually listened. |
-| *"Do not exceed 200 words in the body"* | Long emails don't get read. 200 words forces ruthless prioritization. |
-
----
-
-## Component 5 — The Agent Configuration
+## Component 4 — The Agent Configuration
 
 ### The 3 Topics (Subagents)
 
@@ -305,26 +283,22 @@ Topic 1 Update         Topic 2 Generate Brief      Topic 3 Generate Email
 passes record ID       passes record ID            passes record ID
 ```
 
-Without this variable, each topic would have no idea which record to update. The agent would either create a new record every time or update the wrong one. This one variable is the thread that connects all three topics together.
-
-**How it gets set:** When the Create Discovery Session action runs, it returns a `record_id` output. In the Agent Builder, I mapped that output to `{discovery_session_id}` so the agent captures and stores it automatically.
+Without this variable, each topic would have no idea which record to update. This one variable is the thread that connects all three topics together.
 
 ---
 
-## Component 6 — The Permission Set
+## Component 5 — The Permission Set
 
 **What it is:** A permission set called `SE_Discovery_Agent_User` that grants the agent's system user access to everything it needs.
-
-**Why it's needed:** Salesforce's security model means nothing has access to anything by default. The agent runs as a special system user — that user needs explicit permission to:
 
 | Permission granted | Why it's needed |
 |-------------------|----------------|
 | Read + Create + Edit `Discovery_Session__c` | Can't save data to a record you don't have access to |
 | Read + Edit all 15 custom fields | Field-level security is separate from object security in Salesforce |
 | Run `GenerateSolutionBriefAction` Apex | Apex classes are locked down by default |
+| Run `GenerateFollowupEmailAction` Apex | Same reason |
 | Run `UpdateDiscoverySessionAction` Apex | Same reason |
-
-**Without this:** The agent would crash silently the moment it tried to create a record or call an Apex class. Took me a while to debug this during the build — it's one of the less obvious parts of Agentforce setup.
+| Run `CreateDiscoverySessionAction` Apex | Same reason |
 
 ---
 
@@ -334,8 +308,8 @@ Without this variable, each topic would have no idea which record to update. The
 |-------|----------------------------------------|---------------------|
 | Agent framework | Agentforce runtime, topic routing, variable system | The 3 topics, instructions, action bindings |
 | Data storage | Custom object capability | The `Discovery_Session__c` object and all 15 fields |
-| Automation | Flow builder | 2 flows (Create + Update) with null-safe merge logic |
-| AI integration | Einstein LLM API, Prompt Builder | 2 Apex classes, 2 prompt templates with custom instructions |
+| Automation | Flow builder | 2 flows (Create + Update) |
+| AI integration | `aiplatform.ModelsAPI`, Salesforce-hosted models | 2 Apex classes with custom prompt engineering, calling models directly — no Prompt Templates |
 | Security | Permission set framework | The `SE_Discovery_Agent_User` permission set |
 
 **The honest answer to "what did you actually build?"**
@@ -349,11 +323,14 @@ Without this variable, each topic would have no idea which record to update. The
 **"Why did you use Apex instead of a Flow for the updates?"**
 > *"Salesforce Flow's formula engine doesn't support IF logic on picklist fields, and 6 of our 15 fields are picklists. Apex doesn't have that limitation — it's the right tool for the job."*
 
-**"Why separate the brief and the email into two prompt templates?"**
-> *"They're for different audiences and different purposes. The brief is structured reference material. The email is conversational. They need different AI models and different prompt instructions."*
+**"Why did you use `aiplatform.ModelsAPI` instead of Prompt Templates?"**
+> *"Prompt Templates use a `SOBJECT://` input type that rejects plain record IDs passed from Apex — it throws an `Invalid input value` error at runtime. `aiplatform.ModelsAPI` takes a plain text string directly, so all the prompt engineering lives in Apex where I can version-control it, test it, and iterate on it without touching Salesforce UI config."*
 
 **"How does the agent know which Salesforce record to update?"**
 > *"The context variable `discovery_session_id`. It's set once when the first record is created and passed to every action in every topic for the rest of the conversation."*
+
+**"Why two separate Apex classes for the brief and the email?"**
+> *"They're for different audiences and purposes. The brief is structured reference material for the SE — five sections, detailed recommendations. The email is conversational, under 200 words, ready to send. Different models too: Claude Haiku for the brief (better at structured output), GPT-4o Mini for the email (better at concise professional writing)."*
 
 **"What would you improve if you had more time?"**
 > *"Better handling of the topic transition — right now the agent sometimes needs a nudge to move from Discovery to Solution Recommendation. I'd also add error handling for when the AI call fails, so the agent gracefully retries or tells the user what happened."*

@@ -95,4 +95,12 @@
         <apexClass>UpdateDiscoverySessionAction</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>CreateDiscoverySessionAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>GenerateFollowupEmailAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
 </PermissionSet>
