@@ -111,7 +111,6 @@ subagent ambiguous_question:
 subagent discovery_conversation:
     label: "Discovery Conversation"
     description: "Conduct a structured discovery interview with the prospect one question at a time. Create and update the Discovery Session record as answers are collected. Hand off to Solution Recommendation when all fields are captured."
-
     reasoning:
         instructions: ->
             | You are conducting a structured SE discovery interview. Follow this exact sequence, one question per message:
@@ -119,7 +118,7 @@ subagent discovery_conversation:
               Step 1: If you do not yet have the prospect's name, ask for it.
               Step 2: Ask for their company name.
               Step 3: Ask for their industry. Offer these options: Manufacturing, Financial Services, Healthcare, Retail, Technology, Nonprofit, Education, or Other.
-              Step 4: Once you have name, company, and industry, immediately call create_discovery_session. Store the returned record_id in @variables.discovery_session_id.
+              Step 4: Once you have name, company, and industry, immediately call Create_Discovery_Session. Store the returned record_id in @variables.discovery_session_id.
               Step 5: Ask how many employees their company has (1-50, 51-250, 251-1000, 1001-5000, or 5000+).
               Step 6: Ask what CRM and tools they currently use to manage customers and operations.
               Step 7: Ask what their single biggest operational or business challenge is right now.
@@ -129,8 +128,8 @@ subagent discovery_conversation:
               Step 11: Ask what their decision timeline looks like: Immediate (0-3 months), Near-term (3-6 months), Long-term (6-12 months), or just Exploratory.
               Step 12: Ask about their budget range: Under $50K, $50K-$250K, $250K-$1M, $1M+, or they can say Not Disclosed.
               Step 13: Ask who the key stakeholders are in the decision — titles and names if they know them.
-              Step 14: After every 2-3 answers, call update_discovery_session with the record_id from @variables.discovery_session_id and all field values collected so far.
-              Step 15: When all fields are captured, call update_discovery_session one final time with discovery_status set to "Discovery Complete". Then transition to solution_recommendation.
+              Step 14: After every 2-3 answers, call Update_Discovery_Session with recordId = @variables.discovery_session_id and all field values collected so far.
+              Step 15: When all fields are captured, call Update_Discovery_Session one final time with discovery_status = "Discovery Complete". Then transition to solution_recommendation.
 
               Hard rules:
               - Ask exactly ONE question per message. Never stack multiple questions.
@@ -140,40 +139,242 @@ subagent discovery_conversation:
               - If the prospect skips a question, note it and continue. Do not leave a field permanently blank without asking at least once.
         actions:
             go_to_solution_recommendation: @utils.transition to @subagent.solution_recommendation
+            Create_Discovery_Session: @actions.Create_Discovery_Session
+                with company_name = ...
+                with industry = ...
+                with prospect_name = ...
+            Update_Discovery_Session: @actions.Update_Discovery_Session
+                with budget_range = ...
+                with company_size = ...
+                with current_crm = ...
+                with decision_timeline = ...
+                with discovery_status = ...
+                with followup_email = ...
+                with key_stakeholders = ...
+                with recommended_clouds = ...
+                with recordId = @variables.discovery_session_id
+                with solution_brief = ...
+                with top_pain_point_1 = ...
+                with top_pain_point_2 = ...
+                with top_pain_point_3 = ...
+
+
+
+    actions:
+        Create_Discovery_Session:
+            label: "Create Discovery Session"
+            description: |
+                                        
+                Creates a new Discovery Session record at the start of the conversation. Call once after collecting the prospect's name, company, and industry. Returns the record Id.
+            target: "flow://Create_Discovery_Session"
+            inputs:
+                company_name: string
+                    label: "company_name"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                industry: string
+                    label: "industry"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                prospect_name: string
+                    label: "prospect_name"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+            outputs:
+                record_id: string
+                    label: "record_id"
+                    complex_data_type_name: "lightning__textType"
+                    is_displayable: False
+                    filter_from_agent: False
+
+        Update_Discovery_Session:
+            label: "Update Discovery Session"
+            description: |
+                
+                Updates the active Discovery Session record with new field values. Call after every 2-3 prospect answers to persist the data.
+            target: "flow://Update_Discovery_Session"
+            inputs:
+                budget_range: string
+                    label: "budget_range"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                company_size: string
+                    label: "company_size"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                current_crm: string
+                    label: "current_crm"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                decision_timeline: string
+                    label: "decision_timeline"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                discovery_status: string
+                    label: "discovery_status"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                followup_email: string
+                    label: "followup_email"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                key_stakeholders: string
+                    label: "key_stakeholders"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                recommended_clouds: string
+                    label: "recommended_clouds"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                recordId: string
+                    label: "recordId"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                solution_brief: string
+                    label: "solution_brief"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_1: string
+                    label: "top_pain_point_1"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_2: string
+                    label: "top_pain_point_2"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_3: string
+                    label: "top_pain_point_3"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
 
 subagent solution_recommendation:
     label: "Solution Recommendation"
     description: "Generate and present a tailored Solution Brief using the completed Discovery Session. Invite prospect feedback and regenerate if needed. Hand off to Followup Generation when confirmed."
-
     reasoning:
         instructions: ->
             | Generate and present the Solution Brief.
 
-              Step 1: Call generate_solution_brief with the Discovery Session Id from @variables.discovery_session_id. This will generate the brief and save it to the record.
+              Step 1: Call Generate_Solution_Brief with sessionIds = @variables.discovery_session_id. This will generate the brief and save it to the record.
               Step 2: Display the full Solution Brief to the prospect in a readable, well-formatted way.
               Step 3: Ask: "Does this resonate with where you're at? Is there anything you'd adjust or anything I missed?"
               Step 4: If the prospect points out something incorrect or missing:
                 - Ask clarifying questions to understand the correction.
-                - Call update_discovery_session to update the relevant fields with corrected values.
-                - Call generate_solution_brief again to regenerate with the updated information.
+                - Call Update_Discovery_Session with recordId = @variables.discovery_session_id to update the relevant fields with corrected values.
+                - Call Generate_Solution_Brief again to regenerate with the updated information.
                 - Repeat until the prospect confirms it is accurate.
               Step 5: Once the prospect confirms the brief looks right, say: "Great — let me put together a quick recap email for you." Then transition to followup_generation.
         actions:
             go_to_followup_generation: @utils.transition to @subagent.followup_generation
+            Generate_Solution_Brief: @actions.Generate_Solution_Brief
+                with sessionIds = @variables.discovery_session_id
+            Update_Discovery_Session: @actions.Update_Discovery_Session
+                with budget_range = ...
+                with company_size = ...
+                with current_crm = ...
+                with decision_timeline = ...
+                with discovery_status = ...
+                with followup_email = ...
+                with key_stakeholders = ...
+                with recommended_clouds = ...
+                with recordId = @variables.discovery_session_id
+                with solution_brief = ...
+                with top_pain_point_1 = ...
+                with top_pain_point_2 = ...
+                with top_pain_point_3 = ...
+
+
+
+    actions:
+        Generate_Solution_Brief:
+            label: "Generate Solution Brief"
+            description: |
+                                        
+                Generates an AI-powered Solution Brief from the Discovery Session record and saves it to the record. Call with the Discovery Session Id. Returns the brief text.
+            target: "apex://GenerateSolutionBriefAction"
+            inputs:
+                sessionIds: id
+                    label: "sessionIds"
+                    is_required: False
+                    complex_data_type_name: "lightning__recordIdType"
+            outputs:
+                output: string
+                    label: "output"
+                    complex_data_type_name: "lightning__textType"
+                    is_displayable: False
+                    filter_from_agent: False
+
+        Update_Discovery_Session:
+            label: "Update Discovery Session"
+            description: |
+                
+                Updates the Discovery Session record if the prospect corrects or adds information before regenerating the brief.
+            target: "flow://Update_Discovery_Session"
+            inputs:
+                budget_range: string
+                    label: "budget_range"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                company_size: string
+                    label: "company_size"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                current_crm: string
+                    label: "current_crm"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                decision_timeline: string
+                    label: "decision_timeline"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                discovery_status: string
+                    label: "discovery_status"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                followup_email: string
+                    label: "followup_email"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                key_stakeholders: string
+                    label: "key_stakeholders"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                recommended_clouds: string
+                    label: "recommended_clouds"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                recordId: string
+                    label: "recordId"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                solution_brief: string
+                    label: "solution_brief"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_1: string
+                    label: "top_pain_point_1"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_2: string
+                    label: "top_pain_point_2"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_3: string
+                    label: "top_pain_point_3"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
 
 subagent followup_generation:
     label: "Followup Generation"
     description: "Produce a follow-up recap email from the SE to the prospect. Offer tone adjustments. Close with a clear summary of next steps."
-
     reasoning:
         instructions: ->
             | Produce the follow-up email and close the conversation.
 
-              Step 1: Call generate_followup_email with the Discovery Session Id from @variables.discovery_session_id.
+              Step 1: Call Generate_Followup_Email with "Input:DiscoverySession" = @variables.discovery_session_id and isPreviewOnly = false.
               Step 2: Display the full draft email to the prospect, including the suggested subject line.
               Step 3: Ask: "How does this look? I can make it more formal, more casual, or shorter if you'd prefer."
-              Step 4: If the prospect requests a tone change or edit, acknowledge their preference and call generate_followup_email again. Note any tone preference in the session update.
-              Step 5: Once the prospect is satisfied, call update_discovery_session to save the final email to the Followup_Email__c field and set discovery_status to "Sent to Prospect".
+              Step 4: If the prospect requests a tone change or edit, acknowledge their preference and call Generate_Followup_Email again. Note any tone preference in the session update.
+              Step 5: Once the prospect is satisfied, call Update_Discovery_Session with recordId = @variables.discovery_session_id to save the final email to the followup_email field and set discovery_status to "Sent to Prospect".
               Step 6: Close the conversation with a clear summary:
                 - Session number captured
                 - Top three pain points you heard
@@ -181,4 +382,107 @@ subagent followup_generation:
                 - Agreed next step
                 End with: "Thank you — this has been a great conversation. I'll follow up shortly."
         actions:
-            go_to_end: @utils.transition to @subagent.off_topic
+            Generate_Followup_Email: @actions.Generate_Followup_Email
+                with "Input:DiscoverySession" = @variables.discovery_session_id
+                with isPreviewOnly = false
+            Update_Discovery_Session: @actions.Update_Discovery_Session
+                with budget_range = ...
+                with company_size = ...
+                with current_crm = ...
+                with decision_timeline = ...
+                with discovery_status = ...
+                with followup_email = ...
+                with key_stakeholders = ...
+                with recommended_clouds = ...
+                with recordId = @variables.discovery_session_id
+                with solution_brief = ...
+                with top_pain_point_1 = ...
+                with top_pain_point_2 = ...
+                with top_pain_point_3 = ...
+
+
+
+    actions:
+        Generate_Followup_Email:
+            label: "Generate Followup Email"
+            description: |
+                                        
+                Generates a follow-up recap email from the Discovery Session record. Call with the Discovery Session Id. Returns the email draft.
+            target: "generatePromptResponse://Generate_Followup_Email"
+            inputs:
+                "Input:DiscoverySession": object
+                    label: "DiscoverySession"
+                    is_required: True
+                    complex_data_type_name: "lightning__recordInfoType"
+                isPreviewOnly: boolean
+                    label: "Preview Only"
+                    description: "Resolves the prompt template without generating an LLM response."
+                    is_required: False
+                    complex_data_type_name: "lightning__booleanType"
+            outputs:
+                promptResponse: string
+                    label: "Prompt Response"
+                    description: "The prompt response generated by the action based on the specified prompt and input."
+                    complex_data_type_name: "lightning__textType"
+                    is_displayable: False
+                    filter_from_agent: False
+
+        Update_Discovery_Session:
+            label: "Update Discovery Session"
+            description: |
+                
+                Saves the final approved email to the record and updates the Discovery Status to Sent to Prospect.
+            target: "flow://Update_Discovery_Session"
+            inputs:
+                budget_range: string
+                    label: "budget_range"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                company_size: string
+                    label: "company_size"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                current_crm: string
+                    label: "current_crm"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                decision_timeline: string
+                    label: "decision_timeline"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                discovery_status: string
+                    label: "discovery_status"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                followup_email: string
+                    label: "followup_email"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                key_stakeholders: string
+                    label: "key_stakeholders"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                recommended_clouds: string
+                    label: "recommended_clouds"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                recordId: string
+                    label: "recordId"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                solution_brief: string
+                    label: "solution_brief"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_1: string
+                    label: "top_pain_point_1"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_2: string
+                    label: "top_pain_point_2"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                top_pain_point_3: string
+                    label: "top_pain_point_3"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
